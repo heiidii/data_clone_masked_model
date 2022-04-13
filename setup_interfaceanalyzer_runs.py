@@ -17,9 +17,11 @@ pyrosetta.init('--mute all')
 
 pdb_chains_file='masif_all_chains.txt'
 outpath_all = './output_pdbs'
-json_file_input='dict_pdbfiles_N1001.json'
+json_file_input='dict_pdbfiles_N2001.json'
 pdbfiles = json.load(open(json_file_input, 'r'))
-outpath_lowest='./'
+outpath_lowest='./lowest_pdbs_withdgres'
+os.makedirs(outpath_lowest, exist_ok=True)
+
 
 def read_ppi_chains_file():
     pdbs_source = []
@@ -68,6 +70,7 @@ def setup_ppi_interface_runs(overwrite=False, maxN=6000):
     pdb_chains_dict = read_ppi_chains_file()
     scorefxn = get_fa_scorefxn()
     lowest_dg_pdbs = {}
+    outf=open('.done', 'w')
     for i, (key, value) in enumerate(pdbfiles.items()):
        if i > maxN:
            break
@@ -79,9 +82,11 @@ def setup_ppi_interface_runs(overwrite=False, maxN=6000):
        lowest_dg = 0.0
        lowest_pose = None
        lowest_pdb = ''
-       
+       lowest_pdb_out = '{}/{}_withbfac.pdb'.format(outpath_lowest, key)
+       if os.path.exists(lowest_pdb_out):
+           outf.write('{},{}\n'.format(i,key))
+           continue
        if len(outpdbs)==10:
-           
            # now we can score all; find lowest
            for cur_pdb in outpdbs:
               pose = pose_from_file(cur_pdb)
@@ -108,14 +113,19 @@ def setup_ppi_interface_runs(overwrite=False, maxN=6000):
        #    residue = lowest_pose.residue(ires+1)
        #    for iatom in range(residue.natoms()):
        #       lowest_pose.pdb_info().bfactor(ires+1, iatom+1, 0.0)
+       interface_res = list(interface_analyzer.get_interface_set())
+       interface_bool = [0 if t+1 not in interface_res else 1 for t in range(pose.size())]
        for ires, dgres in enumerate(list_dg):
           #add dgres info to CA
           lowest_pose.pdb_info().bfactor(ires+1, 2, dgres)
-       lowest_pose.dump_file('{}/{}_withbfac.pdb'.format(outpath_lowest, key))
+          #interface or not info to N
+          lowest_pose.pdb_info().bfactor(ires+1, 1, interface_bool[ires])
+       lowest_pose.dump_file(lowest_pdb_out)
        #interface_res = list(interface_analyzer.get_interface_set())
        #dg_intres = [list_dg[i-1] for i in interface_res]
 
     json.dump(lowest_dg_pdbs, open('{}/lowest_dg_pdbs_N{}.json'.format(outpath_lowest, i), 'w'))
+    outf.close()
 
 
 setup_ppi_interface_runs()
