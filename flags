@@ -1,0 +1,5 @@
+-multiple_processes_writing_to_one_directory
+-in:file:s {placeholder_pdbfile}
+-parser:protocol {placeholder_xml}
+-out:prefix {placeholder_out}/
+-nstruct 10

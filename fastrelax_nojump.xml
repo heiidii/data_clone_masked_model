@@ -1,0 +1,59 @@
+<ROSETTASCRIPTS>
+
+    <SCOREFXNS>
+        # The standard score function
+        <ScoreFunction name="standardfxn" weights="ref2015"/>
+    </SCOREFXNS>
+
+    <RESIDUE_SELECTORS>
+
+        # Making selections for the antigen and antibody
+        <Chain name="chainsp1" chains="{placeholder_p1}"/>
+        <Chain name="chainsp2" chains="{placeholder_p2}"/>
+
+        <InterfaceByVector name="interface" cb_dist_cut="8.0" nearby_atom_cut="6.5" vector_angle_cut="100" vector_dist_cut="10.0" grp1_selector="chainsp1" grp2_selector="chainsp2"/>
+       <Not name="frozen" selector="interface" />
+
+
+    </RESIDUE_SELECTORS>
+ 
+    <TASKOPERATIONS>
+        # Sample extra rotamers
+        <ExtraRotamersGeneric ex1="1" ex2="1" name="ex1_ex2"/>
+        LimitAromaChi2 name="limitchi2" include_trp="True"/> 
+        <IncludeCurrent name="input_sc"/>
+
+        # Initialize using the flags file
+        <InitializeFromCommandline name="init" />
+
+
+        # Freeze conserved residues
+        <OperateOnResidueSubset name="non_int_non_design" selector="frozen">
+            <PreventRepackingRLT/>
+        </OperateOnResidueSubset>
+
+
+
+    </TASKOPERATIONS>
+    
+    <FILTERS>
+    </FILTERS>
+
+
+    <MOVERS>
+     <FastRelax name="fastrelint" relaxscript="InterfaceDesign2019"  
+     task_operations="ex1_ex2,init,input_sc,non_int_non_design" disable_design="true" scorefxn="standardfxn">
+     <MoveMap name="sidechainonly" bb="false" chi="true" jump="false" />
+     </FastRelax>
+     <InterfaceAnalyzerMover name="analyze" scorefxn="standardfxn" packstat="0" pack_input="1" pack_separated="0" interface="{placeholder_partners}" interface_sc="true"/>
+    </MOVERS>
+    <APPLY_TO_POSE>
+    </APPLY_TO_POSE>
+    <PROTOCOLS>
+        <Add mover="fastrelint"/>
+        <Add mover="analyze"/>
+    </PROTOCOLS>
+
+    <OUTPUT />
+
+</ROSETTASCRIPTS>
