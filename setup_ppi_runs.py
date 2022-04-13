@@ -101,5 +101,13 @@ def submit_runs(json_file, N=1, pdbids=[], overwrite=False):
         os.system(cmd)
 
 
-jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=True, maxN=1000)
-submit_runs(jsonfile, overwrite=False, N=1000)
+def rsync_data_to_dst(dst, mode='relaxed_pdbs'):
+   #currently just rsync relaxed pdbs
+   if mode=='relaxed_pdbs':
+      cmd_rsync = 'rsync --relative -rav saipooja@graylab.jhu.edu:{}./output_pdbs/*/*.pdb {}'.format(runpath_up, dst)
+   print(cmd_rsync)
+
+#jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=True, maxN=1000)
+#submit_runs(jsonfile, overwrite=False, N=1000)
+dst='/Users/saipooja/Documents/Repositories/data_clone_masked_model'
+rsync_data_to_dst(dst)
