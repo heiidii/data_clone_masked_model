@@ -19,6 +19,7 @@ pdb_chains_file='masif_all_chains.txt'
 outpath_all = './output_pdbs'
 json_file_input='dict_pdbfiles_N1001.json'
 pdbfiles = json.load(open(json_file_input, 'r'))
+outpath_lowest='./'
 
 def read_ppi_chains_file():
     pdbs_source = []
@@ -63,19 +64,6 @@ def get_prop_from_pdb(pdb, prop='dG_separated'):
     return None
 
 
-def set_bfactor(pdb, bfactor_list):
-    p = PDBParser()
-    file_name = splitext(basename(pdb))[0]
-    structure = p.get_structure(file_name, pdb)
-    residues = [r for r in structure.get_residues()]
-    assert len(residues) == len(bfactor_list)
-    for res, bf in zip(residues, bfactor_list):
-        res['CA'].set_bfactor(bf)
-    
-
-
-
-
 def setup_ppi_interface_runs(overwrite=False, maxN=6000):
     pdb_chains_dict = read_ppi_chains_file()
     scorefxn = get_fa_scorefxn()
@@ -116,31 +104,18 @@ def setup_ppi_interface_runs(overwrite=False, maxN=6000):
        list_dg = list(dg_per_res.dG)
        print(key, lowest_pose.size(), len(list_dg))
        assert lowest_pose.size() == len(list_dg)
-       pdbinfo = lowest_pose.pdb_info()
-       print(pdbinfo)
+       #for ires in range(pose.size()):
+       #    residue = lowest_pose.residue(ires+1)
+       #    for iatom in range(residue.natoms()):
+       #       lowest_pose.pdb_info().bfactor(ires+1, iatom+1, 0.0)
        for ires, dgres in enumerate(list_dg):
-        lowest_pose.pdb_info().bfactor(ires+1, 1, dgres)
-       pdbinfo = lowest_pose.pdb_info()
-       print(pdbinfo)
-       for ires in range(pose.size()):
-           #ats = lowest_pose.residue(ires+1).atom_type_set()
-           residue = lowest_pose.residue(ires+1)
-           print(residue)
-
-       #for ires, dgres in enumerate(list_dg):
-       # bfac = lowest_pose.pdb_info().bfactor(ires+1, 1)
-       # assert dgres == bfac
-       lowest_pose.dump_file('{}_withbfac.pdb'.format(key))
+          #add dgres info to CA
+          lowest_pose.pdb_info().bfactor(ires+1, 2, dgres)
+       lowest_pose.dump_file('{}/{}_withbfac.pdb'.format(outpath_lowest, key))
        #interface_res = list(interface_analyzer.get_interface_set())
-       #print(interface_res)
        #dg_intres = [list_dg[i-1] for i in interface_res]
-       #print(dg_intres)
-       exit()
 
-
-       
-
-    json.dump(lowest_dg_pdbs, open('lowest_dg_pdbs_N{}.json'.format(i), 'w'))
+    json.dump(lowest_dg_pdbs, open('{}/lowest_dg_pdbs_N{}.json'.format(outpath_lowest, i), 'w'))
 
 
 setup_ppi_interface_runs()
