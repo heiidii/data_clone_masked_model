@@ -1,0 +1,11 @@
+Universe = vanilla
+Executable = /home/saipooja/RosettaDevelopment/Rosetta/main/source/bin/rosetta_scripts.linuxgccrelease
+Arguments = @{placeholder_flags}
+
+Log          = outerr/$(prefix).log_$(Process)
+Output       = outerr/$(prefix).out_$(Process)
+Error        = outerr/$(prefix).err_$(Process)
+
+prefix       = {placeholder_pdbid}
+
+Queue 1
