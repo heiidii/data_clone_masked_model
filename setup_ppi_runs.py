@@ -38,10 +38,8 @@ def setup_ppi_dg_runs(overwrite=False, maxN=6000):
     pdbfiles = {}
     for pdbid in pdb_chains_dict:
        pdbfilename = '{}/{}_pp_trunc.pdb'.format(pdb_files_path, pdbid)
-       #print(pdbid, pdbfilename)
        if os.path.exists(pdbfilename):
           pdbfiles[pdbid] = pdbfilename
-    #print(len(pdbfiles.keys()))
     for i, (key, value) in enumerate(pdbfiles.items()):
        if i > maxN:
            break
@@ -106,8 +104,9 @@ def rsync_data_to_dst(dst, mode='relaxed_pdbs'):
    if mode=='relaxed_pdbs':
       cmd_rsync = 'rsync --relative -rav saipooja@graylab.jhu.edu:{}./output_pdbs/*/*.pdb {}'.format(runpath_up, dst)
    print(cmd_rsync)
+   os.system(cmd_rsync)
 
 #jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=True, maxN=1000)
 #submit_runs(jsonfile, overwrite=False, N=1000)
-dst='/Users/saipooja/Documents/Repositories/data_clone_masked_model'
+dst='./'
 rsync_data_to_dst(dst)

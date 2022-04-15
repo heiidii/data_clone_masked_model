@@ -66,16 +66,23 @@ def get_prop_from_pdb(pdb, prop='dG_separated'):
     return None
 
 
-def setup_ppi_interface_runs(overwrite=False, maxN=6000):
-    pdb_chains_dict = read_ppi_chains_file()
+def setup_ppi_interface_runs(cur_dict={},overwrite=False, maxN=6000):
+    if cur_dict == {}:
+        pdb_chains_dict = read_ppi_chains_file()
+    else:
+        pdb_chains_dict = cur_dict
     scorefxn = get_fa_scorefxn()
     lowest_dg_pdbs = {}
+    print(pdb_chains_dict)
+    
     outf=open('.done', 'w')
+    
     for i, (key, value) in enumerate(pdbfiles.items()):
+       #if not key in pdb_chains_dict:
+       #    continue
+       print(i, key, value)
        if i > maxN:
            break
-       p1 = pdb_chains_dict[key].split('_')[1]
-       p2 = pdb_chains_dict[key].split('_')[2]
        
        outpath = '{}/{}_{}'.format(outpath_all, '%04d' %i, key)
        outpdbs = glob.glob('{}/*.pdb'.format(outpath))
@@ -89,7 +96,10 @@ def setup_ppi_interface_runs(overwrite=False, maxN=6000):
        if len(outpdbs)==10:
            # now we can score all; find lowest
            for cur_pdb in outpdbs:
-              pose = pose_from_file(cur_pdb)
+              try:
+                pose = pose_from_file(cur_pdb)
+              except:
+                continue
               #score = scorefxn(pose)
               #dg = pyrosetta.rosetta.core.pose.get_all_score_line_strings(pose)
               dg = get_prop_from_pdb(cur_pdb, prop='dG_separated')
@@ -102,6 +112,8 @@ def setup_ppi_interface_runs(overwrite=False, maxN=6000):
        print(key, lowest_dg_pdbs[key])
        if lowest_pose is None:
            continue
+       p1 = pdb_chains_dict[key].split('_')[1]
+       p2 = pdb_chains_dict[key].split('_')[2]
        partners='{}_{}'.format(p1.upper(), p2.upper())
        interface_analyzer = get_interface_analyzer_basic(partners, scorefxn)
        interface_analyzer.apply(lowest_pose)
@@ -127,18 +139,25 @@ def setup_ppi_interface_runs(overwrite=False, maxN=6000):
     json.dump(lowest_dg_pdbs, open('{}/lowest_dg_pdbs_N{}.json'.format(outpath_lowest, i), 'w'))
     outf.close()
 
+def get_bad_ids():
+    path_relax = 'output_pdbs'
+    path_lowest = 'lowest_pdbs_withdgres'
+    pdbs_1 = os.listdir(path_relax)
+    #print(pdbs_1)
+    pdbs_2 = glob.glob(path_lowest+'/*.pdb')
+    ids_1 = [t.split('_')[1] for t in pdbs_1]
+    ids_2 = [os.path.basename(t).split('_')[0] \
+             for t in pdbs_2]
+    print(ids_1[:10])
+    print(ids_2[:10])
+    not_found = [t for t in ids_1 if t not in ids_2]
+    not_found_paths = ['{}'.format(pdbs_1[i]) for i,t in enumerate(ids_1) if t not in ids_2]
+    open('redo_ids.txt', 'w').write('\n'.join(not_found)+'\n')
+    open('redo_ids_paths.txt', 'w').write('\n'.join(not_found_paths)+'\n')
+       
 
-setup_ppi_interface_runs()
-
-
-
-
-
-
-
-
-
-
-
-
+test_dict = {}
+#{'1ur6':'a_b'}
+#setup_ppi_interface_runs(cur_dict=test_dict)
+get_bad_ids()
 
