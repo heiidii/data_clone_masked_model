@@ -106,7 +106,17 @@ def rsync_data_to_dst(dst, mode='relaxed_pdbs'):
    print(cmd_rsync)
    os.system(cmd_rsync)
 
-#jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=True, maxN=1000)
-#submit_runs(jsonfile, overwrite=False, N=1000)
-dst='./'
-rsync_data_to_dst(dst)
+def remove_bad_ids():
+   with open('redo_ids_paths.txt', 'r') as f:
+      bad_ids = [t.rstrip() for t in f.readlines()]
+   for bid in bad_ids:
+      fullpath = '{}/{}'.format(outpath_all, bid)
+      cmd_rm = 'rm -rf {}'.format(fullpath)
+      if os.path.exists(fullpath):
+        print(cmd_rm)
+        os.system(cmd_rm)  
+#jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=False, maxN=5500)
+#submit_runs(jsonfile, overwrite=False, N=5500)
+#dst='/Users/saipooja/Documents/Repositories/data_clone_masked_model'
+#rsync_data_to_dst(dst)
+remove_bad_ids()
