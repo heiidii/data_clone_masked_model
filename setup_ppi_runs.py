@@ -38,43 +38,47 @@ def setup_ppi_dg_runs(overwrite=False, chains_json='', maxN=6000,
        if os.path.exists(pdbfilename):
           pdbfiles[pdbid] = pdbfilename
        elif len(glob.glob(pdbfilename))>0:
-          pdbfiles[pdbid] = pdbfilename[0]
+          pdbfiles[pdbid] = glob.glob(pdbfilename)[0]
+          print(f'pdbid {pdbid} found')
        else:
-          print(f'{pdbid} not found')
+          #print(f'{pdbid} not found')
           continue
+    
     for i, (key, value) in enumerate(pdbfiles.items()):
        if i > maxN:
            break
-       p1 = pdb_chains_dict[key].split('_')[1]
-       p2 = pdb_chains_dict[key].split('_')[2]
+       print(pdb_chains_dict[key])
+       if chains_json == '':
+        p1 = pdb_chains_dict[key].split('_')[1]
+        p2 = pdb_chains_dict[key].split('_')[2]
+       else:
+        p1 = pdb_chains_dict[key].split('_')[0]
+        p2 = pdb_chains_dict[key].split('_')[1]
        p1_commas = '' + ','.join([t.upper() for t in p1])
        p2_commas = '' + ','.join([t.upper() for t in p2])
        #print(key, p1_commas, p2_commas)
        partners='{}_{}'.format(p1.upper(), p2.upper())
        chains='{}{}'.format(p1.upper(), p2.upper())
-       cleanup_name = '{}_{}.pdb'.format(value.split('/')[-1].split('.pdb')[0], chains)
-       cleanupfile_exists = os.path.exists(cleanup_name)
+       #cleanup_name = '{}_{}.pdb'.format(value.split('/')[-1].split('.pdb')[0], chains)
+       #cleanupfile_exists = os.path.exists(cleanup_name)
        xml_path = '{}/relax_{}.xml'.format(inputpath, key)
        outpath = '{}/{}_{}'.format(outpath_all, '%04d' %i, key)
        pdbfile_out = '{}/{}_0001.pdb'.format(outpath, pdbfiles[key].split('/')[-1].split('.')[0])
        if os.path.exists(xml_path) and (not overwrite) and \
-        os.path.exists(pdbfile_out) and (not cleanupfile_exists):
+        os.path.exists(pdbfile_out):
            continue
-       print('cleanup: ',key, cleanup_name)
+       #print('cleanup: ',key, cleanup_name)
        open(xml_path, 'w').write(xml_template.format(placeholder_p1=p1_commas,
                            placeholder_p2=p2_commas,  
                            placeholder_partners=partners)
                             )
        flags_path = '{}/flags_{}'.format(inputpath, key)
-       if not cleanupfile_exists:
-          open(flags_path, 'w').write(flags_template.format(placeholder_pdbid=key,
+       #if not cleanupfile_exists:
+       print(pdbfiles[key])
+       if not os.path.exists(pdbfiles[key]):
+        continue
+       open(flags_path, 'w').write(flags_template.format(placeholder_pdbid=key,
                              placeholder_pdbfile=pdbfiles[key],
-                             placeholder_out=outpath,
-                             placeholder_xml=xml_path)
-                            )
-       else:
-          open(flags_path, 'w').write(flags_template.format(placeholder_pdbid=key,
-                             placeholder_pdbfile=os.path.abspath(cleanup_name),
                              placeholder_out=outpath,
                              placeholder_xml=xml_path)
                             )
@@ -144,18 +148,20 @@ def remove_bad_ids():
 #remove_bad_ids()
 if __name__ == '__main__':
     global runpath, outpath_all, runpath_up, pdb_chains_file, pdb_files_path
-
-    runpath='/home/saipooja/data_clone_masked_model/heteromers/runs_colab_p0'
+    base_path = '/home/saipooja/testset_sequences_model_protppi699/homomers'
+    runpath = f'{base_path}/runs_colab_p0'
     os.makedirs(runpath, exist_ok=True)
-    runpath_up='/home/saipooja/data_clone_masked_model/'
-    outpath_all='/home/saipooja/data_clone_masked_model/heteromers/output_colab_p0'
+    runpath_up=base_path
+    outpath_all = f'{base_path}/output_colab_p0'
     os.makedirs(runpath, exist_ok=True)
     #pdb_chains_file='/home/saipooja/data_clone_masked_model/masif_all_chains.txt'
-    pdb_files_path='/home/saipooja/heteromers'
+    pdb_files_path = f'{base_path}/argmax_multimer_colab_p0_structs'
     inputpath = '{}/inputs'.format(runpath)
-    chains_json = ''                
+    chains_json = f'{base_path}/masif_testset_noabag_N400_chains_homomers.json'                
 
     jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=False, maxN=100,
                                             chains_json=chains_json, 
                                             pdb_file_format='{}/{}*_relaxed_rank_1_model_[0-9].pdb')
+    #jsonfile='dict_pdbfiles_N96.json'
     submit_runs(jsonfile, overwrite=False, N=100)
+
