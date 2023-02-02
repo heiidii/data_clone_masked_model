@@ -134,7 +134,7 @@ def setup_ppi_interface_runs(pdbfiles, cur_dict={}, maxN=6000):
 
 def get_lowest_energy_pdb(pdbfiles, outpath_all, outpath_lowest, maxN=100):
     lowest_dg_pdbs = {}
-    
+    os.makedirs(outpath_lowest, exist_ok=True)
     outf=open('.done', 'w')
     for i, (key, value) in enumerate(pdbfiles.items()):
        print(i, key, value)
@@ -145,19 +145,19 @@ def get_lowest_energy_pdb(pdbfiles, outpath_all, outpath_lowest, maxN=100):
        outpdbs = glob.glob('{}/*.pdb'.format(outpath))
        lowest_dg = 0.0
        lowest_pdb = ''
-       lowest_pdb_out = f'{outpath_lowest}/{os.path.basename(outpdbs)}'
-       if os.path.exists(lowest_pdb_out):
-           outf.write('{},{}\n'.format(i,key))
-           continue
        if len(outpdbs)==10:
-           # now we can score all; find lowest
            for cur_pdb in outpdbs:
               dg = get_prop_from_pdb(cur_pdb, prop='dG_separated')
               if dg < lowest_dg:
                 lowest_dg = dg
                 lowest_pdb = cur_pdb
-       lowest_dg_pdbs[key] = lowest_pdb
-       os.system(f'mv {lowest_pdb} {lowest_pdb_out}')
+           if lowest_pdb == '':
+              continue
+           lowest_dg_pdbs[key] = lowest_pdb
+           cmd = f'cp {lowest_pdb} {outpath_lowest}/.'
+           print(cmd)
+           os.system(f'cp {lowest_pdb} {outpath_lowest}/.')
+           outf.write('{},{}\n'.format(i,key))
 
 
 def get_bad_ids():
@@ -180,11 +180,11 @@ if __name__ == '__main__':
     #pdb_chains_file='masif_all_chains.txt'
     #json_file_input='dict_pdbfiles_N2001.json'
     #pdbfiles = json.load(open(json_file_input, 'r'))
-    outpath_all = './output_pdbs'
-    outpath_lowest='./lowest_pdbs_withdgres'
+    outpath_all = '/home/saipooja/testset_sequences_model_protppi699/heteromers/output_colab_p0'
+    outpath_lowest='/home/saipooja/testset_sequences_model_protppi699/heteromers/lowest_pdbs_withdgres'
     os.makedirs(outpath_lowest, exist_ok=True)
-    json_file=''
-    pdbfiles=''
-    get_lowest_energy_pdb(pdbfiles, outpath_all, outpath_lowest)
+    json_file='/home/saipooja/testset_sequences_model_protppi699/heteromers/masif_testset_noabag_N400_chains_heteromers_colab.json'
+    pdb_json = json.load(open(json_file, 'r'))
+    get_lowest_energy_pdb(pdb_json, outpath_all, outpath_lowest)
 
 

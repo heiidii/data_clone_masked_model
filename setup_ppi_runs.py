@@ -157,7 +157,7 @@ if __name__ == '__main__':
     #pdb_chains_file='/home/saipooja/data_clone_masked_model/masif_all_chains.txt'
     pdb_files_path = f'{base_path}/argmax_multimer_colab_p0_structs'
     inputpath = '{}/inputs'.format(runpath)
-    chains_json = f'{base_path}/masif_testset_noabag_N400_chains_homomers.json'                
+    chains_json = f'{base_path}/masif_testset_noabag_N400_chains_homomers_colab.json'                
 
     jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=False, maxN=100,
                                             chains_json=chains_json, 
