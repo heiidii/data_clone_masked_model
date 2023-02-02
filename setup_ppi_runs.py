@@ -51,20 +51,30 @@ def setup_ppi_dg_runs(overwrite=False, chains_json='', maxN=6000,
        p2_commas = '' + ','.join([t.upper() for t in p2])
        #print(key, p1_commas, p2_commas)
        partners='{}_{}'.format(p1.upper(), p2.upper())
-       
+       chains='{}{}'.format(p1.upper(), p2.upper())
+       cleanup_name = '{}_{}.pdb'.format(value.split('/')[-1].split('.pdb')[0], chains)
+       cleanupfile_exists = os.path.exists(cleanup_name)
        xml_path = '{}/relax_{}.xml'.format(inputpath, key)
        outpath = '{}/{}_{}'.format(outpath_all, '%04d' %i, key)
        pdbfile_out = '{}/{}_0001.pdb'.format(outpath, pdbfiles[key].split('/')[-1].split('.')[0])
        if os.path.exists(xml_path) and (not overwrite) and \
-        os.path.exists(pdbfile_out):
+        os.path.exists(pdbfile_out) and (not cleanupfile_exists):
            continue
+       print('cleanup: ',key, cleanup_name)
        open(xml_path, 'w').write(xml_template.format(placeholder_p1=p1_commas,
                            placeholder_p2=p2_commas,  
                            placeholder_partners=partners)
                             )
        flags_path = '{}/flags_{}'.format(inputpath, key)
-       open(flags_path, 'w').write(flags_template.format(placeholder_pdbid=key,
+       if not cleanupfile_exists:
+          open(flags_path, 'w').write(flags_template.format(placeholder_pdbid=key,
                              placeholder_pdbfile=pdbfiles[key],
+                             placeholder_out=outpath,
+                             placeholder_xml=xml_path)
+                            )
+       else:
+          open(flags_path, 'w').write(flags_template.format(placeholder_pdbid=key,
+                             placeholder_pdbfile=os.path.abspath(cleanup_name),
                              placeholder_out=outpath,
                              placeholder_xml=xml_path)
                             )
@@ -78,13 +88,19 @@ def setup_ppi_dg_runs(overwrite=False, chains_json='', maxN=6000,
     return pdbfiles_dict_file, pdbfiles
 
 
-def submit_runs(json_file, N=1, pdbids=[], overwrite=False):
+def submit_runs(json_file, N=1, pdbids=[], overwrite=False,
+                submit=True, selected_ids=None):
     pdbfiles = json.load(open(json_file, 'r'))
     os.makedirs('{}/submitted'.format(runpath_up), exist_ok=True)
     os.makedirs('{}/outerr'.format(runpath), exist_ok=True)
+    if selected_ids is None:
+       selected_ids = list(pdbfiles.keys())
+    cleanup_ids=[]
     for i, (key, values) in enumerate(pdbfiles.items()):
         if i > N:
             break
+        if key not in selected_ids:
+           continue
         flags_path = '{}/flags_{}'.format(inputpath, key)
         #print(key, i, '{}/{}_{}'.format(outpath_all, '%04d' %i, key), flags_path)
         outpath='{}/{}_{}'.format(outpath_all, '%04d' %i, key)
@@ -94,11 +110,15 @@ def submit_runs(json_file, N=1, pdbids=[], overwrite=False):
         outpdbs = glob.glob('{}/*.pdb'.format(outpath))
         #print(outpath)
         if os.path.exists(submit_file) and (not overwrite) and \
-            len(outpdbs)>=10:
+            len(outpdbs)>=5:
             continue
-        print(i, outpath, len(outpdbs))
-        cmd = 'cd {}; condor_submit {} | tee {}'.format(runpath, con_file, submit_file)
-        os.system(cmd)
+        if submit:
+         print(i, outpath, len(outpdbs))
+         cmd = 'cd {}; condor_submit {} | tee {}'.format(runpath, con_file, submit_file)
+         os.system(cmd)
+        else:
+         cleanup_ids.append('{}_{}'.format('%04d' %i, key))
+    return cleanup_ids
 
 
 def rsync_data_to_dst(dst, mode='relaxed_pdbs'):
@@ -118,12 +138,10 @@ def remove_bad_ids():
         print(cmd_rm)
         os.system(cmd_rm)  
 
-#jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=False, maxN=5500)
-#submit_runs(jsonfile, overwrite=False, N=5500)
+
 #dst='/Users/saipooja/Documents/Repositories/data_clone_masked_model'
 #rsync_data_to_dst(dst)
 #remove_bad_ids()
-
 if __name__ == '__main__':
     global runpath, outpath_all, runpath_up, pdb_chains_file, pdb_files_path
 
@@ -140,4 +158,4 @@ if __name__ == '__main__':
     jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=False, maxN=100,
                                             chains_json=chains_json, 
                                             pdb_file_format='{}/{}*_relaxed_rank_1_model_[0-9].pdb')
-    submit_runs(jsonfile, overwrite=False, N=5500)
+    submit_runs(jsonfile, overwrite=False, N=100)
