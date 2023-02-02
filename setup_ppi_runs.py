@@ -130,6 +130,7 @@ def rsync_data_to_dst(dst, mode='relaxed_pdbs'):
    if mode=='relaxed_pdbs':
       cmd_rsync = 'rsync --relative -rav saipooja@graylab.jhu.edu:{}./output_pdbs/*/*.pdb {}'.format(runpath_up, dst)
    print(cmd_rsync)
+   os.system(cmd_rsync)
 
 def remove_bad_ids():
    with open('redo_ids_paths.txt', 'r') as f:
