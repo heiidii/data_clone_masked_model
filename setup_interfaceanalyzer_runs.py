@@ -15,14 +15,6 @@ from Bio import SeqIO
 
 pyrosetta.init('--mute all')
 
-pdb_chains_file='masif_all_chains.txt'
-outpath_all = './output_pdbs'
-json_file_input='dict_pdbfiles_N2001.json'
-pdbfiles = json.load(open(json_file_input, 'r'))
-outpath_lowest='./lowest_pdbs_withdgres'
-os.makedirs(outpath_lowest, exist_ok=True)
-
-
 def read_ppi_chains_file():
     pdbs_source = []
     pdbs_source_chains = []
@@ -66,7 +58,7 @@ def get_prop_from_pdb(pdb, prop='dG_separated'):
     return None
 
 
-def setup_ppi_interface_runs(cur_dict={},overwrite=False, maxN=6000):
+def setup_ppi_interface_runs(pdbfiles, cur_dict={}, maxN=6000):
     if cur_dict == {}:
         pdb_chains_dict = read_ppi_chains_file()
     else:
@@ -139,6 +131,35 @@ def setup_ppi_interface_runs(cur_dict={},overwrite=False, maxN=6000):
     json.dump(lowest_dg_pdbs, open('{}/lowest_dg_pdbs_N{}.json'.format(outpath_lowest, i), 'w'))
     outf.close()
 
+
+def get_lowest_energy_pdb(pdbfiles, outpath_all, outpath_lowest, maxN=100):
+    lowest_dg_pdbs = {}
+    
+    outf=open('.done', 'w')
+    for i, (key, value) in enumerate(pdbfiles.items()):
+       print(i, key, value)
+       if i > maxN:
+           break
+       
+       outpath = '{}/{}_{}'.format(outpath_all, '%04d' %i, key)
+       outpdbs = glob.glob('{}/*.pdb'.format(outpath))
+       lowest_dg = 0.0
+       lowest_pdb = ''
+       lowest_pdb_out = f'{outpath_lowest}/{os.path.basename(outpdbs)}'
+       if os.path.exists(lowest_pdb_out):
+           outf.write('{},{}\n'.format(i,key))
+           continue
+       if len(outpdbs)==10:
+           # now we can score all; find lowest
+           for cur_pdb in outpdbs:
+              dg = get_prop_from_pdb(cur_pdb, prop='dG_separated')
+              if dg < lowest_dg:
+                lowest_dg = dg
+                lowest_pdb = cur_pdb
+       lowest_dg_pdbs[key] = lowest_pdb
+       os.system(f'mv {lowest_pdb} {lowest_pdb_out}')
+
+
 def get_bad_ids():
     path_relax = 'output_pdbs'
     path_lowest = 'lowest_pdbs_withdgres'
@@ -155,9 +176,15 @@ def get_bad_ids():
     open('redo_ids.txt', 'w').write('\n'.join(not_found)+'\n')
     open('redo_ids_paths.txt', 'w').write('\n'.join(not_found_paths)+'\n')
        
+if __name__ == '__main__':
+    #pdb_chains_file='masif_all_chains.txt'
+    #json_file_input='dict_pdbfiles_N2001.json'
+    #pdbfiles = json.load(open(json_file_input, 'r'))
+    outpath_all = './output_pdbs'
+    outpath_lowest='./lowest_pdbs_withdgres'
+    os.makedirs(outpath_lowest, exist_ok=True)
+    json_file=''
+    pdbfiles=''
+    get_lowest_energy_pdb(pdbfiles, outpath_all, outpath_lowest)
 
-test_dict = {}
-#{'1ur6':'a_b'}
-#setup_ppi_interface_runs(cur_dict=test_dict)
-get_bad_ids()
 
