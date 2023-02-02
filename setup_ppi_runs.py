@@ -2,20 +2,13 @@ import os, glob
 import sys
 import json
 
+# Read templates
 xml_template_file='fastrelax_nojump.xml'
 xml_template = open(xml_template_file, 'r').read()
 flags_template_file='flags'
 flags_template = open(flags_template_file, 'r').read()
 condor_run_template_file='run.con'
 condor_run_template = open(condor_run_template_file, 'r').read()
-runpath='/home/saipooja/data_clone_masked_model/runs'
-os.makedirs(runpath, exist_ok=True)
-runpath_up='/home/saipooja/data_clone_masked_model/'
-outpath_all='/home/saipooja/data_clone_masked_model/output_pdbs'
-os.makedirs(runpath, exist_ok=True)
-pdb_chains_file='/home/saipooja/data_clone_masked_model/masif_all_chains.txt'
-pdb_files_path='/home/saipooja/data_clone_masked_model/truncated'
-inputpath = '{}/inputs'.format(runpath)                
 
 def read_ppi_chains_file():
     pdbs_source = []
@@ -32,14 +25,23 @@ def read_ppi_chains_file():
         pdb_chains_dict[id] = id_chain
     return pdb_chains_dict
 
-def setup_ppi_dg_runs(overwrite=False, maxN=6000):
+def setup_ppi_dg_runs(overwrite=False, chains_json='', maxN=6000,
+                      pdb_file_format='{}/{}_pp_trunc.pdb'):
     os.makedirs(inputpath, exist_ok=True)
-    pdb_chains_dict = read_ppi_chains_file()
+    if chains_json == '':
+        pdb_chains_dict = read_ppi_chains_file()
+    else:
+        pdb_chains_dict = json.load(open(chains_json, 'r'))
     pdbfiles = {}
     for pdbid in pdb_chains_dict:
-       pdbfilename = '{}/{}_pp_trunc.pdb'.format(pdb_files_path, pdbid)
+       pdbfilename = pdb_file_format.format(pdb_files_path, pdbid)
        if os.path.exists(pdbfilename):
           pdbfiles[pdbid] = pdbfilename
+       elif len(glob.glob(pdbfilename))>0:
+          pdbfiles[pdbid] = pdbfilename[0]
+       else:
+          print(f'{pdbid} not found')
+          continue
     for i, (key, value) in enumerate(pdbfiles.items()):
        if i > maxN:
            break
@@ -115,8 +117,27 @@ def remove_bad_ids():
       if os.path.exists(fullpath):
         print(cmd_rm)
         os.system(cmd_rm)  
+
 #jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=False, maxN=5500)
 #submit_runs(jsonfile, overwrite=False, N=5500)
 #dst='/Users/saipooja/Documents/Repositories/data_clone_masked_model'
 #rsync_data_to_dst(dst)
-remove_bad_ids()
+#remove_bad_ids()
+
+if __name__ == '__main__':
+    global runpath, outpath_all, runpath_up, pdb_chains_file, pdb_files_path
+
+    runpath='/home/saipooja/data_clone_masked_model/heteromers/runs_colab_p0'
+    os.makedirs(runpath, exist_ok=True)
+    runpath_up='/home/saipooja/data_clone_masked_model/'
+    outpath_all='/home/saipooja/data_clone_masked_model/heteromers/output_colab_p0'
+    os.makedirs(runpath, exist_ok=True)
+    #pdb_chains_file='/home/saipooja/data_clone_masked_model/masif_all_chains.txt'
+    pdb_files_path='/home/saipooja/heteromers'
+    inputpath = '{}/inputs'.format(runpath)
+    chains_json = ''                
+
+    jsonfile, pdbfiles = setup_ppi_dg_runs(overwrite=False, maxN=100,
+                                            chains_json=chains_json, 
+                                            pdb_file_format='{}/{}*_relaxed_rank_1_model_[0-9].pdb')
+    submit_runs(jsonfile, overwrite=False, N=5500)
